@@ -1,10 +1,48 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather Forecast App</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: #eaf4ff;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .weather-card {
+            background: white;
+            padding: 20px;
+            margin: 15px auto;
+            max-width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #ccc;
+        }
+
+        img {
+            width: 80px;
+        }
+    </style>
 </head>
+
 <body>
 
     <h1>Weather Forecast Application</h1>
@@ -22,10 +60,191 @@
 
     <div id="forecastResult"></div>
 
+    <script>
+
+        const apiKey = "YOUR_OPENWEATHER_API_KEY";
+
+        // MANUAL LOCATION
+        async function getWeather() {
+
+            const city = prompt("Enter a city name");
+
+            if (!city) {
+                alert("No city entered");
+                return;
+            }
+
+            const url =
+                `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
+
+            try {
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error("City not found");
+                }
+
+                const data = await response.json();
+
+                getWeatherByCoordinates(
+                    data.coord.lat,
+                    data.coord.lon
+                );
+
+            } catch (error) {
+
+                alert("Error: " + error.message);
+
+            }
+        }
+
+
+        // GPS LOCATION
+        function getGPSLocation() {
+
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+
+                position => {
+
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    getWeatherByCoordinates(lat, lon);
+
+                },
+
+                error => {
+                    alert("Unable to get your location: " + error.message);
+                }
+
+            );
+        }
+
+
+        // GET WEATHER USING COORDINATES
+        async function getWeatherByCoordinates(lat, lon) {
+
+            const weatherUrl =
+                `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+
+            const forecastUrl =
+                `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+
+            try {
+
+                document.getElementById("weatherResult").innerHTML =
+                    "Loading weather...";
+
+                const weatherResponse = await fetch(weatherUrl);
+
+                if (!weatherResponse.ok) {
+                    throw new Error("Unable to get weather data");
+                }
+
+                const weatherData = await weatherResponse.json();
+
+                const forecastResponse = await fetch(forecastUrl);
+
+                if (!forecastResponse.ok) {
+                    throw new Error("Unable to get forecast data");
+                }
+
+                const forecastData = await forecastResponse.json();
+
+                displayWeather(weatherData);
+                displayForecast(forecastData);
+
+            } catch (error) {
+
+                document.getElementById("weatherResult").innerHTML =
+                    "Error: " + error.message;
+
+            }
+        }
+
+
+        // DISPLAY CURRENT WEATHER
+        function displayWeather(data) {
+
+            document.getElementById("locationResult").innerHTML =
+                "Location: " + data.name + ", " + data.sys.country;
+
+            document.getElementById("weatherResult").innerHTML = `
+
+                <div class="weather-card">
+
+                    <h2>Current Weather</h2>
+
+                    <h3>${data.name}</h3>
+
+                    <img
+                        src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png"
+                        alt="Weather icon">
+
+                    <h2>${data.main.temp} °C</h2>
+
+                    <p>${data.weather[0].description}</p>
+
+                    <p>Feels Like: ${data.main.feels_like} °C</p>
+
+                    <p>Humidity: ${data.main.humidity}%</p>
+
+                    <p>Wind Speed: ${data.wind.speed} m/s</p>
+
+                </div>
+
+            `;
+        }
+
+
+        // DISPLAY 5-DAY FORECAST
+        function displayForecast(data) {
+
+            const forecastDiv =
+                document.getElementById("forecastResult");
+
+            forecastDiv.innerHTML = "<h2>5-Day Weather Forecast</h2>";
+
+            data.list.forEach((item, index) => {
+
+                // Display one forecast every 24 hours
+                if (index % 8 === 0) {
+
+                    const date = new Date(item.dt * 1000);
+
+                    forecastDiv.innerHTML += `
+
+                        <div class="weather-card">
+
+                            <h3>${date.toDateString()}</h3>
+
+                            <img
+                                src="https://openweathermap.org/img/wn/${item.weather[0].icon}@2x.png"
+                                alt="Weather icon">
+
+                            <h3>${item.main.temp} °C</h3>
+
+                            <p>${item.weather[0].description}</p>
+
+                            <p>Humidity: ${item.main.humidity}%</p>
+
+                        </div>
+
+                    `;
+
+                }
+
+            });
+
+        }
+
+    </script>
+
 </body>
 </html>
-<script>
-
-    const apiKey = "YOUR_OPENWEATHER_API_KEY";
-
-</script>
